@@ -477,8 +477,9 @@ def get_cache_ref_logprobs(
                     reference_chosen_logps, reference_rejected_logps, _ = forward_fn(
                         model, batch, average_log_prob=average_log_prob
                     )
-                cached_reference_chosen_logps.append(reference_chosen_logps.cpu())
-                cached_reference_rejected_logps.append(reference_rejected_logps.cpu())
+                cached_reference_chosen_logps.append(reference_chosen_logps.to("cpu", non_blocking=True))
+                cached_reference_rejected_logps.append(reference_rejected_logps.to("cpu", non_blocking=True))
+            torch.cuda.synchronize()
         epoch_cached_reference_chosen_logps.append(cached_reference_chosen_logps)
         epoch_cached_reference_rejected_logps.append(cached_reference_rejected_logps)
     return epoch_cached_reference_chosen_logps, epoch_cached_reference_rejected_logps

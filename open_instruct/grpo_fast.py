@@ -2140,7 +2140,8 @@ def create_model_and_optimizer(
     """Create the model, optimizer, and vLLM engines."""
     # Create placement group
     bundles = [{"GPU": actor_num_gpus, "CPU": actor_num_gpus * 10} for actor_num_gpus in args.num_learners_per_node]
-    pg = placement_group(bundles, strategy="STRICT_SPREAD")
+    num_nodes = len(ray.nodes())
+    pg = placement_group(bundles, strategy="SPREAD" if num_nodes == 1 else "STRICT_SPREAD")
     ray_get_with_progress([pg.ready()], desc="Waiting for placement group")
     policy_group = ModelGroup(pg, PolicyTrainerRayProcess, args.num_learners_per_node, args.single_gpu_mode)
     wandb_url = wandb.run.get_url() if args.with_tracking else None

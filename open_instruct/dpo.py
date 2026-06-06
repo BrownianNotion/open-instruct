@@ -91,8 +91,7 @@ def _handle_post_training(
     hf_model_path = os.path.join(args.output_dir, "hf_model")
     export_to_hf(model, tokenizer, hf_model_path, args.model_name_or_path, is_main_process)
 
-    if distributed_utils.is_distributed():
-        dist.barrier()
+    distributed_utils.barrier()
 
     output_path = pathlib.Path(args.output_dir).resolve()
     beaker_output_path = pathlib.Path("/output").resolve()
@@ -174,8 +173,7 @@ def main(args: dpo_utils.DPOExperimentConfig, tc: dataset_transformation.Tokeniz
 
     if is_main_process:
         os.makedirs(args.output_dir, exist_ok=True)
-    if distributed_utils.is_distributed():
-        dist.barrier()
+    distributed_utils.barrier()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

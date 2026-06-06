@@ -34,6 +34,7 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
+from olmo_core.distributed import utils as distributed_utils
 from tqdm.auto import tqdm
 from transformers import DataCollatorForSeq2Seq
 from transformers.training_args import _convert_str_dict
@@ -448,7 +449,7 @@ def build_reference_logprobs_cache(
                 f"Cannot write to cache directory {cache_path.parent}: {e}. "
                 f"Set REFERENCE_LOGPROBS_CACHE_PATH to a writable location."
             ) from e
-    dist.barrier()
+    distributed_utils.barrier()
 
     model.eval()
     chosen_tensor = torch.full((full_dataset_size,), float("-inf"), dtype=torch.float32, device=device)
@@ -488,8 +489,9 @@ def build_reference_logprobs_cache(
                 }
             )
 
-    dist.all_reduce(chosen_tensor, op=dist.ReduceOp.MAX)
-    dist.all_reduce(rejected_tensor, op=dist.ReduceOp.MAX)
+    if distributed_utils.is_distributed():
+        dist.all_reduce(chosen_tensor, op=dist.ReduceOp.MAX)
+        dist.all_reduce(rejected_tensor, op=dist.ReduceOp.MAX)
 
     missing_chosen = torch.where(chosen_tensor == float("-inf"))[0]
     missing_rejected = torch.where(rejected_tensor == float("-inf"))[0]
@@ -515,7 +517,7 @@ def build_reference_logprobs_cache(
         logger.info(f"Saving reference logprobs cache to {cache_path}")
         cache.to_disk(cache_path)
 
-    dist.barrier()
+    distributed_utils.barrier()
 
     return cache
 
